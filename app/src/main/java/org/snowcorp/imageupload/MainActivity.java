@@ -25,12 +25,21 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import java.io.File;
+import java.lang.reflect.Array;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+
+import static java.lang.System.in;
 
 public class MainActivity extends AppCompatActivity {
     private ImageView imageView;
     private Button btnChoose, btnUpload;
     private ProgressBar progressBar;
 
+    private static final String TAG = "MainActivity";
     public static String BASE_URL = "http://172.19.144.219:12345/images";
     static final int PICK_IMAGE_REQUEST = 1;
     String filePath;
@@ -102,22 +111,54 @@ public class MainActivity extends AppCompatActivity {
                         try {
 //                            JSONObject jObj = new JSONObject(response);
 //                            String message = jObj.getString("message");
+                            // ADDED JSON PARSING
+                            JSONArray jsonArray = new JSONArray(response);
+                            JSONObject jsonObject = jsonArray.getJSONObject(0);
+                            int x_start = jsonObject.getInt("x_start");
+                            int y_start = jsonObject.getInt("y_start");
+                            int x_dim = jsonObject.getInt("x_dim");
+                            int y_dim = jsonObject.getInt("y_dim");
 
-                            JSONArray jObj = new JSONArray(response);
-
-                            String img = jObj.getString(0);
-
-
-//                            String x_dim = jObj.getString(1);
-//                            String x_start = jObj.getString(2);
-//                            String y_dim = jObj.getString(3);
-//                            String y_start= jObj.getString(4);
+                            //convert this JSONArray to Array type
+                            JSONArray img = jsonObject.getJSONArray("img");
 
 
+                            Toast.makeText(getApplicationContext(), x_dim, Toast.LENGTH_LONG).show();
 
-                            Toast.makeText(getApplicationContext(), img, Toast.LENGTH_LONG).show();
+                            // COMPARISON FUNCTION FOR FEATURE ANALYSIS
+                            // assuming we have a "database" with the template letters
+                            Map<String, String> mapping = new HashMap<String, String>();
 
-                        } catch (JSONException e) {
+                            for(int i = 0; i<database.names().length(); i++){
+                                int[] temp = database.get(database.names().getString(i));
+                                //"key = " + database.names().getString(i)
+                                // "value = " + database.get(database.names().getString(i)));
+                                int num = 0;
+                                for(int l=0; l<img.length(); l++){
+                                    //error here because img is parsed as a json array (ex. [{1:[1,2,3,4,5...]}]
+                                    //supposed to be [1, 2, 3, 4,5...]
+                                    num += Math.pow(img[i], 2) + Math.pow(temp[l], 2);
+                                }
+                                mapping.put(database.names().getString(i), num);
+                            }
+                            int min = 0 ;
+                            String let = null;
+                            //first entry in map should be a string of the letter 'a' or 'b'
+                            for (Map.Entry<String, Integer> entry : mapping.entrySet()) {
+                                //key = entry.getKey()
+                                //Value = " + entry.getValue());
+                                int val = entry.getValue();
+                                if (val < min){
+                                    min = val;
+                                    let = entry.getKey();
+                                }
+                            }
+                            //deal with multiple JSON objects being returned!!
+                            //returns the letter from template with the highest similarity
+                            //not sure where this should return
+                            return let;
+
+                            } catch (JSONException e) {
                             // JSON error
                             e.printStackTrace();
                             Toast.makeText(getApplicationContext(), "Json error: " + e.getMessage(), Toast.LENGTH_LONG).show();
@@ -132,6 +173,7 @@ public class MainActivity extends AppCompatActivity {
 
         smr.addFile("image", imagePath);
         MyApplication.getInstance().addToRequestQueue(smr);
+
 
     }
 
