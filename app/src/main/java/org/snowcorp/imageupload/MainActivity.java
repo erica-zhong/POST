@@ -108,55 +108,67 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onResponse(String response) {
                         Log.d("Response", response);
+                        HashMap allLetters = new HashMap();
                         try {
 //                            JSONObject jObj = new JSONObject(response);
 //                            String message = jObj.getString("message");
                             // ADDED JSON PARSING
+                            HashMap dimensions = new HashMap();
                             JSONArray jsonArray = new JSONArray(response);
-                            JSONObject jsonObject = jsonArray.getJSONObject(0);
-                            int x_start = jsonObject.getInt("x_start");
-                            int y_start = jsonObject.getInt("y_start");
-                            int x_dim = jsonObject.getInt("x_dim");
-                            int y_dim = jsonObject.getInt("y_dim");
+                            for(int idx=0; idx<jsonArray.length(); idx++){
 
-                            //convert this JSONArray to Array type
-                            JSONArray img = jsonObject.getJSONArray("img");
+                                JSONObject jsonObject = jsonArray.getJSONObject(idx);
+                                int x_start = jsonObject.getInt("x_start");
+                                int y_start = jsonObject.getInt("y_start");
+                                int x_dim = jsonObject.getInt("x_dim");
+                                int y_dim = jsonObject.getInt("y_dim");
+
+                                //convert this JSONArray to Array type
+                                JSONArray img = jsonObject.getJSONArray("img");
 
 
-                            Toast.makeText(getApplicationContext(), x_dim, Toast.LENGTH_LONG).show();
+                                Toast.makeText(getApplicationContext(), x_dim, Toast.LENGTH_LONG).show();
 
-                            // COMPARISON FUNCTION FOR FEATURE ANALYSIS
-                            // assuming we have a "database" with the template letters
-                            Map<String, String> mapping = new HashMap<String, String>();
+                                // COMPARISON FUNCTION FOR FEATURE ANALYSIS
+                                // assuming we have a "database" with the template letters
+                                // map each letter to the distance between it and every letter in the template
+                                Map<String, String> mapping = new HashMap<String, String>();
 
-                            for(int i = 0; i<database.names().length(); i++){
-                                int[] temp = database.get(database.names().getString(i));
-                                //"key = " + database.names().getString(i)
-                                // "value = " + database.get(database.names().getString(i)));
-                                int num = 0;
-                                for(int l=0; l<img.length(); l++){
-                                    //error here because img is parsed as a json array (ex. [{1:[1,2,3,4,5...]}]
-                                    //supposed to be [1, 2, 3, 4,5...]
-                                    num += Math.pow(img[i], 2) + Math.pow(temp[l], 2);
+                                for(int i = 0; i<database.names().length(); i++){
+                                    int[] temp = database.get(database.names().getString(i));
+                                    //"key = " + database.names().getString(i)
+                                    // "value = " + database.get(database.names().getString(i)));
+                                    int num = 0;
+                                    for(int l=0; l<img.length(); l++){
+                                        //error here because img is parsed as a json array (ex. [{1:[1,2,3,4,5...]}]
+                                        //supposed to be [1, 2, 3, 4,5...]
+                                        num += Math.pow(img[i], 2) + Math.pow(temp[l], 2);
+                                    }
+                                    mapping.put(database.names().getString(i), num);
                                 }
-                                mapping.put(database.names().getString(i), num);
-                            }
-                            int min = 0 ;
-                            String let = null;
-                            //first entry in map should be a string of the letter 'a' or 'b'
-                            for (Map.Entry<String, Integer> entry : mapping.entrySet()) {
-                                //key = entry.getKey()
-                                //Value = " + entry.getValue());
-                                int val = entry.getValue();
-                                if (val < min){
-                                    min = val;
-                                    let = entry.getKey();
+                                int min = 0 ;
+                                String let = null;
+                                //first entry in map should be a string of the letter 'a' or 'b'
+                                for (Map.Entry<String, Integer> entry : mapping.entrySet()) {
+                                    //key = entry.getKey()
+                                    //Value = " + entry.getValue());
+                                    int val = entry.getValue();
+                                    if (val < min){
+                                        min = val;
+                                        let = entry.getKey();
+                                    }
                                 }
+                                //allLetters contains each letter that is recognized mapped to its dimensions
+                                //next step is to put this through location algorithm to return words
+
+                                allLetters.put(let, dimensions);
+                                dimensions.put("x_start", x_start);
+                                dimensions.put("y_start", y_start);
+                                dimensions.put("x_dim", x_dim);
+                                dimensions.put("y_dim", y_dim);
+                                //sort based on y_start to get the top left character
                             }
-                            //deal with multiple JSON objects being returned!!
-                            //returns the letter from template with the highest similarity
-                            //not sure where this should return
-                            return let;
+
 
                             } catch (JSONException e) {
                             // JSON error
